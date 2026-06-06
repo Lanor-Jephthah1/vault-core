@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VaultCore</title>
-    <link rel="stylesheet" href="style.css?v=1">
+    <link rel="stylesheet" href="style.css?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -99,8 +99,8 @@
                             <thead>
                                 <tr>
                                     <th>Name / URL</th>
-                                    <th>Username</th>
-                                    <th>Password</th>
+                                    <th>Username / Label</th>
+                                    <th>Secure Data</th>
                                     <th>Security Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -127,14 +127,6 @@
             </div>
             <form id="add-entry-form">
                 <div class="form-group">
-                    <label>Name or URL</label>
-                    <input type="text" id="entry-name" required placeholder="e.g. GitHub or github.com">
-                </div>
-                <div class="form-group">
-                    <label>Username / Email</label>
-                    <input type="text" id="entry-username" required>
-                </div>
-                <div class="form-group">
                     <label>Category</label>
                     <select id="entry-category" required>
                         <option value="login">Login</option>
@@ -143,8 +135,37 @@
                         <option value="server">Server</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Password</label>
+                
+                <div class="form-group" id="group-name">
+                    <label id="label-name">Name or URL</label>
+                    <input type="text" id="entry-name" required placeholder="e.g. GitHub or github.com">
+                </div>
+                
+                <!-- Login / Server fields -->
+                <div class="form-group" id="group-username">
+                    <label id="label-username">Username / Email</label>
+                    <input type="text" id="entry-username" required>
+                </div>
+                
+                <!-- Card fields -->
+                <div class="form-group hidden" id="group-card-holder">
+                    <label>Cardholder Name</label>
+                    <input type="text" id="entry-card-holder" placeholder="e.g. John Doe">
+                </div>
+                <div class="form-group hidden" id="group-card-expiry">
+                    <label>Expiry Date (MM/YY)</label>
+                    <input type="text" id="entry-card-expiry" placeholder="e.g. 12/28">
+                </div>
+
+                <!-- Note fields -->
+                <div class="form-group hidden" id="group-note-content">
+                    <label>Note Content</label>
+                    <textarea id="entry-note-content" placeholder="Type your secure note here..." rows="5" style="width: 100%; padding: 0.75rem 1rem; background: #0f172a; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: var(--font-sans); outline: none; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Password field -->
+                <div class="form-group" id="group-password">
+                    <label id="label-password">Password</label>
                     <div class="password-input-wrapper">
                         <input type="password" id="entry-password" required>
                         <button type="button" id="generate-btn" title="Generate secure password">
@@ -167,7 +188,7 @@
                         <button type="button" id="apply-gen-btn" class="btn-secondary full-width btn-sm">Generate & Apply</button>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary full-width">Save Entry</button>
+                <button type="submit" class="btn-primary full-width" style="margin-top: 1rem;">Save Entry</button>
             </form>
         </div>
     </div>

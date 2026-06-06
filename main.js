@@ -31,6 +31,24 @@ const addModal = document.getElementById('add-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
 const addEntryForm = document.getElementById('add-entry-form');
 
+// Dynamic Form Elements in Modal
+const entryCategorySelect = document.getElementById('entry-category');
+const groupName = document.getElementById('group-name');
+const labelName = document.getElementById('label-name');
+const entryName = document.getElementById('entry-name');
+
+const groupUsername = document.getElementById('group-username');
+const labelUsername = document.getElementById('label-username');
+const entryUsername = document.getElementById('entry-username');
+
+const groupCardHolder = document.getElementById('group-card-holder');
+const groupCardExpiry = document.getElementById('group-card-expiry');
+const groupNoteContent = document.getElementById('group-note-content');
+
+const groupPassword = document.getElementById('group-password');
+const labelPassword = document.getElementById('label-password');
+const entryPassword = document.getElementById('entry-password');
+
 // Password Generator Panel
 const generateBtn = document.getElementById('generate-btn');
 const generatorOptions = document.getElementById('generator-options');
@@ -80,6 +98,68 @@ fetchVault().then(exists => {
         isInitializing = false;
     }
 });
+
+// --- Dynamic Modal Form Adjustment based on Category ---
+entryCategorySelect.addEventListener('change', () => {
+    const cat = entryCategorySelect.value;
+    
+    // Reset defaults
+    entryUsername.required = false;
+    entryPassword.required = false;
+    
+    groupUsername.classList.remove('hidden');
+    groupPassword.classList.remove('hidden');
+    groupCardHolder.classList.add('hidden');
+    groupCardExpiry.classList.add('hidden');
+    groupNoteContent.classList.add('hidden');
+    
+    labelName.textContent = "Name or URL";
+    labelUsername.textContent = "Username / Email";
+    labelPassword.textContent = "Password";
+    
+    entryName.placeholder = "e.g. GitHub or github.com";
+    entryUsername.placeholder = "";
+    entryPassword.placeholder = "";
+
+    if (cat === 'login') {
+        entryUsername.required = true;
+        entryPassword.required = true;
+    } else if (cat === 'card') {
+        labelName.textContent = "Card Label (e.g. Personal Credit)";
+        labelUsername.textContent = "Card Number";
+        labelPassword.textContent = "CVV / PIN";
+        entryName.placeholder = "e.g. Chase Visa";
+        entryUsername.placeholder = "16-digit card number";
+        entryPassword.placeholder = "3-4 digit code";
+        entryUsername.required = true;
+        entryPassword.required = true;
+        
+        groupCardHolder.classList.remove('hidden');
+        groupCardExpiry.classList.remove('hidden');
+    } else if (cat === 'note') {
+        labelName.textContent = "Note Title";
+        entryName.placeholder = "e.g. WiFi Password or Recovery Keys";
+        groupUsername.classList.add('hidden');
+        groupPassword.classList.add('hidden');
+        groupNoteContent.classList.remove('hidden');
+    } else if (cat === 'server') {
+        labelName.textContent = "Server Name";
+        labelUsername.textContent = "IP / Hostname";
+        labelPassword.textContent = "Password / SSH Key";
+        entryName.placeholder = "e.g. Production DB";
+        entryUsername.placeholder = "e.g. 192.168.1.50";
+        entryUsername.required = true;
+        entryPassword.required = true;
+    }
+});
+
+// Helper: Card Number Masking
+function maskCardNumber(num) {
+    if (!num) return '';
+    const clean = num.replace(/\s+/g, '');
+    if (clean.length < 4) return clean;
+    return '•••• ' + clean.slice(-4);
+}
 
 // --- Master Password Strength Meter logic ---
 masterPasswordInput.addEventListener('input', () => {
@@ -275,6 +355,7 @@ function renderVault() {
     
     filteredEntries.forEach(entry => {
         const tr = document.createElement('tr');
+        const cat = entry.category || 'login';
         
         let statusHtml = '<span class="status-badge status-pending">Unchecked</span>';
         if (entry.pwned === false) {
@@ -283,20 +364,49 @@ function renderVault() {
             statusHtml = '<span class="status-badge status-pwned">Compromised</span>';
         }
         
-        const catLabel = (entry.category || 'login').toUpperCase();
+        const catLabel = cat.toUpperCase();
+        let nameHtml = `
+            <strong>${escapeHtml(entry.name)}</strong>
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:block;">${catLabel}</span>
+        `;
+        
+        let usernameHtml = escapeHtml(entry.username || '');
+        let pwdHtml = '••••••••';
+        let actionsHtml = `
+            <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Password</button>
+            <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
+        `;
+        
+        if (cat === 'card') {
+            usernameHtml = maskCardNumber(entry.username);
+            pwdHtml = '•••';
+            actionsHtml = `
+                <button class="copy-btn" data-index="${entry.originalIndex}" data-type="username">Copy Card No.</button>
+                <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy CVV/PIN</button>
+                <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
+            `;
+        } else if (cat === 'note') {
+            usernameHtml = '<span style="color:var(--text-secondary)">—</span>';
+            pwdHtml = '••••••••';
+            statusHtml = '<span class="status-badge status-safe">Secure Note</span>';
+            actionsHtml = `
+                <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Note</button>
+                <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
+            `;
+        } else if (cat === 'server') {
+            actionsHtml = `
+                <button class="copy-btn" data-index="${entry.originalIndex}" data-type="username">Copy IP</button>
+                <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Password</button>
+                <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
+            `;
+        }
         
         tr.innerHTML = `
-            <td>
-                <strong>${escapeHtml(entry.name)}</strong>
-                <span style="font-size:0.75rem; color:var(--text-secondary); display:block;">${catLabel}</span>
-            </td>
-            <td>${escapeHtml(entry.username)}</td>
-            <td class="pwd-cell">••••••••</td>
+            <td>${nameHtml}</td>
+            <td>${usernameHtml}</td>
+            <td class="pwd-cell">${pwdHtml}</td>
             <td class="status-cell">${statusHtml}</td>
-            <td>
-                <button class="copy-btn" data-index="${entry.originalIndex}">Copy</button>
-                <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
-            </td>
+            <td>${actionsHtml}</td>
         `;
         passwordsBody.appendChild(tr);
     });
@@ -306,10 +416,14 @@ function renderVault() {
         btn.addEventListener('click', (e) => {
             resetInactivityTimer();
             const idx = e.target.getAttribute('data-index');
-            const pwd = vaultData[idx].password;
-            navigator.clipboard.writeText(pwd);
+            const type = e.target.getAttribute('data-type');
+            
+            const value = type === 'username' ? vaultData[idx].username : vaultData[idx].password;
+            navigator.clipboard.writeText(value);
+            
+            const originalText = e.target.textContent;
             e.target.textContent = "Copied!";
-            setTimeout(() => e.target.textContent = "Copy", 2000);
+            setTimeout(() => e.target.textContent = originalText, 2000);
         });
     });
 
@@ -337,24 +451,49 @@ closeModalBtn.addEventListener('click', () => {
     addModal.classList.add('hidden');
     generatorOptions.classList.add('hidden');
     addEntryForm.reset();
+    
+    // Trigger category reset
+    entryCategorySelect.value = 'login';
+    entryCategorySelect.dispatchEvent(new Event('change'));
 });
 
 addEntryForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     resetInactivityTimer();
-    const name = document.getElementById('entry-name').value;
-    const username = document.getElementById('entry-username').value;
-    const category = document.getElementById('entry-category').value;
-    const password = document.getElementById('entry-password').value;
+    
+    const cat = entryCategorySelect.value;
+    const name = entryName.value;
+    
+    let username = "";
+    let password = "";
+    let cardholder = "";
+    let expiry = "";
+    
+    if (cat === 'login' || cat === 'server') {
+        username = entryUsername.value;
+        password = entryPassword.value;
+    } else if (cat === 'card') {
+        username = entryUsername.value; // Card Number
+        password = entryPassword.value; // CVV / PIN
+        cardholder = document.getElementById('entry-card-holder').value;
+        expiry = document.getElementById('entry-card-expiry').value;
+    } else if (cat === 'note') {
+        password = document.getElementById('entry-note-content').value; // Store Note in password
+    }
     
     vaultData.push({
-        name, username, category, password, pwned: null
+        name, username, category: cat, password, cardholder, expiry, pwned: null
     });
     
     await saveVault();
     addModal.classList.add('hidden');
     generatorOptions.classList.add('hidden');
     addEntryForm.reset();
+    
+    // Reset category
+    entryCategorySelect.value = 'login';
+    entryCategorySelect.dispatchEvent(new Event('change'));
+    
     renderVault();
 });
 
@@ -537,6 +676,10 @@ runAuditBtn.addEventListener('click', async () => {
     
     for (let i = 0; i < vaultData.length; i++) {
         const entry = vaultData[i];
+        if (entry.category === 'note') {
+            entry.pwned = false; // Notes are safe from password breach checks
+            continue;
+        }
         try {
             const hash = await CryptoUtils.sha1Hash(entry.password);
             const prefix = hash.substring(0, 5);
