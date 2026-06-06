@@ -182,6 +182,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
+    table-layout: fixed;
 }
 
 th, td {
@@ -199,6 +200,8 @@ th {
 
 td {
     font-size: 0.95rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .pwd-cell {
