@@ -251,9 +251,25 @@ td {
     background: var(--panel-bg);
     width: 100%;
     max-width: 400px;
+    max-height: 85vh;
+    overflow-y: auto;
     border-radius: 12px;
     border: 1px solid var(--border-color);
     padding: 2rem;
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 .modal-header {
