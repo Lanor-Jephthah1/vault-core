@@ -17,6 +17,7 @@ A completely local-first, zero-knowledge secure password manager running entirel
 - **Auto-Lock Timer:** Secure your vault with an auto-lock interval (5 min, 15 min, 1 hour) based on user inactivity, or lock instantly when browser tabs are switched or hidden.
 - **Live Search:** Fast search bar to dynamically filter vault entries as you type.
 - **Encrypted JSON Import/Export:** Securely backup your vault to a downloaded JSON file (which can only be decrypted using your master password) and restore it on any device.
+- **Bulk CSV Import Script:** Automatically migrate all your passwords from Google Chrome or Microsoft Edge by running `python import_csv.py path/to/passwords.csv`.
 
 ## Tech Stack
 - HTML5, CSS3 (Glassmorphism Dark Theme), Vanilla JavaScript
