@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VaultCore</title>
+    <link rel="stylesheet" href="style.css?v=1">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Lock Screen View -->
+        <div id="lock-screen" class="view active">
+            <div class="logo-container">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00ffaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <h1>VaultCore</h1>
+            </div>
+            
+            <p id="auth-message">Enter your Master Password to unlock your vault. If this is your first time, entering a password will initialize your vault.</p>
+            
+            <form id="auth-form">
+                <input type="password" id="master-password" placeholder="Master Password" required autofocus>
+                <button type="submit" id="unlock-btn">Unlock Vault</button>
+            </form>
+            <div id="auth-error" class="error-msg hidden"></div>
+        </div>
+
+        <!-- Vault Dashboard View -->
+        <div id="vault-screen" class="view hidden">
+            <header>
+                <div class="header-left">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00ffaa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <h2>VaultCore</h2>
+                </div>
+                <button id="lock-btn" class="btn-secondary">Lock Vault</button>
+            </header>
+
+            <main>
+                <div class="actions-bar">
+                    <button id="show-add-modal-btn" class="btn-primary">+ New Entry</button>
+                    <button id="run-audit-btn" class="btn-warning">Run Security Audit</button>
+                </div>
+
+                <div class="table-container">
+                    <table id="passwords-table">
+                        <thead>
+                            <tr>
+                                <th>Name / URL</th>
+                                <th>Username</th>
+                                <th>Password</th>
+                                <th>Security Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="passwords-body">
+                            <!-- Entries injected by JS -->
+                        </tbody>
+                    </table>
+                    <div id="empty-state" class="hidden">
+                        <p>Your vault is empty. Click "+ New Entry" to securely store a password.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Entry Modal -->
+    <div id="add-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Entry</h3>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <form id="add-entry-form">
+                <div class="form-group">
+                    <label>Name or URL</label>
+                    <input type="text" id="entry-name" required placeholder="e.g. GitHub or github.com">
+                </div>
+                <div class="form-group">
+                    <label>Username / Email</label>
+                    <input type="text" id="entry-username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="entry-password" required>
+                        <button type="button" id="generate-btn" title="Generate secure password">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary full-width">Save Entry</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="cryptoUtils.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
