@@ -200,6 +200,9 @@ th {
 
 td {
     font-size: 0.95rem;
+}
+
+td:nth-child(1), td:nth-child(2) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
