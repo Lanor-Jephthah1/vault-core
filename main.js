@@ -402,8 +402,8 @@ function renderVault() {
         }
         
         tr.innerHTML = `
-            <td>${nameHtml}</td>
-            <td>${usernameHtml}</td>
+            <td title="${escapeHtml(entry.name)}">${nameHtml}</td>
+            <td title="${escapeHtml(entry.username || '')}">${usernameHtml}</td>
             <td class="pwd-cell">${pwdHtml}</td>
             <td class="status-cell">${statusHtml}</td>
             <td>${actionsHtml}</td>
