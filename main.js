@@ -423,7 +423,14 @@ function renderVault() {
             
             let value = vaultData[idx].password;
             if (type === 'username') value = vaultData[idx].username;
-            else if (type === 'name') value = vaultData[idx].name;
+            else if (type === 'name') {
+                value = vaultData[idx].name;
+                // Extract just the URL/Domain from inside the parentheses if it exists
+                const urlMatch = value.match(/\(([^)]+)\)$/);
+                if (urlMatch) {
+                    value = urlMatch[1];
+                }
+            }
             
             navigator.clipboard.writeText(value);
             
