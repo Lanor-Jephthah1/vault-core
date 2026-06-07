@@ -426,7 +426,7 @@ function renderVault() {
             else if (type === 'name') {
                 value = vaultData[idx].name;
                 // Extract just the URL/Domain from inside the parentheses if it exists
-                const urlMatch = value.match(/\(([^)]+)\)$/);
+                const urlMatch = value.match(/\(([^)]+)\)\s*$/);
                 if (urlMatch) {
                     value = urlMatch[1];
                 }

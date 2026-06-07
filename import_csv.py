@@ -106,7 +106,11 @@ def main():
                         if len(parts) > 1:
                             clean_domain = parts[1]
                     
-                    final_name = f"{raw_name} ({clean_domain})" if raw_name else clean_domain
+                    # Prevent duplicate naming like "github.com (github.com)"
+                    if raw_name.lower().strip() == clean_domain.lower().strip():
+                        final_name = clean_domain
+                    else:
+                        final_name = f"{raw_name} ({clean_domain})" if raw_name else clean_domain
                 
                 if not final_name and not row.get('username') and not row.get('password'):
                     continue
