@@ -22,6 +22,8 @@ A completely local-first, zero-knowledge secure password manager running entirel
   2. Run the script: `python import_csv.py path/to/passwords.csv`
   3. Enter your Master Password securely in the terminal.
 
+![CSV Import Success](screenshots/csv_import.png)
+
 ## Tech Stack
 - HTML5, CSS3 (Glassmorphism Dark Theme), Vanilla JavaScript
 - **Web Crypto API:** Native browser cryptography.
