@@ -79,6 +79,9 @@ const groupTotp = document.getElementById('group-totp');
 const entryTotp = document.getElementById('entry-totp');
 const historyContainer = document.getElementById('history-container');
 const historyList = document.getElementById('history-list');
+const togglePwdVisibilityBtn = document.getElementById('toggle-pwd-visibility-btn');
+const eyeIcon = document.getElementById('eye-icon');
+const eyeOffIcon = document.getElementById('eye-off-icon');
 
 const standardActionsBar = document.getElementById('standard-actions-bar');
 const passwordsTableContainer = document.getElementById('passwords-table-container');
@@ -785,6 +788,12 @@ showAddModalBtn.addEventListener('click', () => {
     addModal.classList.remove('hidden');
 });
 
+function resetPasswordVisibility() {
+    entryPassword.setAttribute('type', 'password');
+    eyeIcon.classList.remove('hidden');
+    eyeOffIcon.classList.add('hidden');
+}
+
 closeModalBtn.addEventListener('click', () => {
     resetInactivityTimer();
     addModal.classList.add('hidden');
@@ -795,6 +804,8 @@ closeModalBtn.addEventListener('click', () => {
     modalTitle.textContent = "Add New Entry";
     historyContainer.classList.add('hidden');
     historyList.innerHTML = '';
+    
+    resetPasswordVisibility();
     
     // Trigger category reset
     entryCategorySelect.value = 'login';
@@ -860,11 +871,28 @@ addEntryForm.addEventListener('submit', async (e) => {
     generatorOptions.classList.add('hidden');
     addEntryForm.reset();
     
+    resetPasswordVisibility();
+    
     // Reset category
     entryCategorySelect.value = 'login';
     entryCategorySelect.dispatchEvent(new Event('change'));
     
     renderVault();
+});
+
+// --- Password Visibility Toggle ---
+togglePwdVisibilityBtn.addEventListener('click', () => {
+    resetInactivityTimer();
+    const type = entryPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+    entryPassword.setAttribute('type', type);
+    
+    if (type === 'password') {
+        eyeIcon.classList.remove('hidden');
+        eyeOffIcon.classList.add('hidden');
+    } else {
+        eyeIcon.classList.add('hidden');
+        eyeOffIcon.classList.remove('hidden');
+    }
 });
 
 // --- Custom Interactive Password Generator logic ---

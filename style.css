@@ -316,7 +316,7 @@ td:last-child {
     gap: 0.5rem;
 }
 
-#generate-btn {
+#generate-btn, #toggle-pwd-visibility-btn {
     background: var(--border-color);
     color: white;
     padding: 0 1rem;
@@ -324,7 +324,7 @@ td:last-child {
     align-items: center;
     justify-content: center;
 }
-#generate-btn:hover { background: #475569; }
+#generate-btn:hover, #toggle-pwd-visibility-btn:hover { background: #475569; }
 
 .full-width { width: 100%; }
 
