@@ -2,7 +2,6 @@
 
 A completely local-first, zero-knowledge secure password manager running entirely in your browser with a SQLite/PostgreSQL backend. It features native Web Crypto API AES-GCM encryption, HaveIBeenPwned API auditing using k-Anonymity, and a suite of premium usability upgrades.
 
-![VaultCore Lock Screen](screenshots/lock_screen.png)
 ![VaultCore Dashboard](screenshots/dashboard.png)
 
 ## Features
@@ -15,12 +14,16 @@ A completely local-first, zero-knowledge secure password manager running entirel
 - **Interactive Password Generator:** Customize character length (8 to 64) and toggle letters, numbers, and symbols with a live preview.
 - **Organized Categories:** Separate your credentials into Logins, Cards, Notes, and Servers with custom visual masking and copy actions (e.g. masking card numbers and separate PIN copying).
 - **Auto-Lock Timer:** Secure your vault with an auto-lock interval (5 min, 15 min, 1 hour) based on user inactivity, or lock instantly when browser tabs are switched or hidden.
+
+  ![VaultCore Lock Screen](screenshots/lock_screen.png)
 - **Live Search:** Fast search bar to dynamically filter vault entries as you type.
 - **Encrypted JSON Import/Export:** Securely backup your vault to a downloaded JSON file (which can only be decrypted using your master password) and restore it on any device.
 - **Bulk CSV Import Script:** Automatically migrate all your passwords from Google Chrome or Microsoft Edge. 
   1. Open your terminal and run: `pip install cryptography`
   2. Run the script: `python import_csv.py path/to/passwords.csv`
   3. Enter your Master Password securely in the terminal.
+
+  ![Terminal CSV Import](screenshots/terminal.png)
 
 
 ## Tech Stack
