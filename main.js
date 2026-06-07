@@ -96,6 +96,14 @@ const statWeak = document.getElementById('stat-weak');
 const statCompromised = document.getElementById('stat-compromised');
 const alertsList = document.getElementById('alerts-list');
 
+const filterBanner = document.getElementById('filter-banner');
+const filterBannerText = document.getElementById('filter-banner-text');
+const clearFilterBtn = document.getElementById('clear-filter-btn');
+
+const statCardReused = document.getElementById('stat-card-reused');
+const statCardWeak = document.getElementById('stat-card-weak');
+const statCardCompromised = document.getElementById('stat-card-compromised');
+
 // --- Initialization ---
 async function fetchVault() {
     try {
@@ -409,12 +417,35 @@ function renderVault() {
         auditDashboard.classList.add('hidden');
     }
     
+    // Filter Banner handling
+    if (currentCategory === 'compromised') {
+        filterBanner.classList.remove('hidden');
+        filterBannerText.textContent = "Filter: Compromised Passwords";
+    } else if (currentCategory === 'weak') {
+        filterBanner.classList.remove('hidden');
+        filterBannerText.textContent = "Filter: Weak Passwords";
+    } else if (currentCategory === 'reused') {
+        filterBanner.classList.remove('hidden');
+        filterBannerText.textContent = "Filter: Reused Passwords";
+    } else {
+        filterBanner.classList.add('hidden');
+    }
+
     // Map entries to their original index for correct mutations (copy/delete)
     let filteredEntries = vaultData.map((entry, originalIndex) => ({ ...entry, originalIndex }));
     
     // Filter by category
     if (currentCategory !== 'all') {
-        filteredEntries = filteredEntries.filter(e => (e.category || 'login') === currentCategory);
+        if (currentCategory === 'compromised') {
+            filteredEntries = filteredEntries.filter(e => e.pwned === true);
+        } else if (currentCategory === 'weak') {
+            filteredEntries = filteredEntries.filter(e => isPasswordWeak(e.password) && e.category !== 'note');
+        } else if (currentCategory === 'reused') {
+            const passwordCounts = getReusedPasswordsInfo();
+            filteredEntries = filteredEntries.filter(e => passwordCounts[e.password] > 1 && e.category !== 'note');
+        } else {
+            filteredEntries = filteredEntries.filter(e => (e.category || 'login') === currentCategory);
+        }
     }
     
     // Filter by search query
@@ -964,6 +995,38 @@ document.querySelectorAll('.category-item').forEach(item => {
         currentCategory = e.target.getAttribute('data-category');
         renderVault();
     });
+});
+
+// Clear filter button in banner
+clearFilterBtn.addEventListener('click', () => {
+    resetInactivityTimer();
+    currentCategory = 'all';
+    document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+    const allItem = document.querySelector('.category-item[data-category="all"]');
+    if (allItem) allItem.classList.add('active');
+    renderVault();
+});
+
+// Interactive Dashboard stats card click listeners
+statCardReused.addEventListener('click', () => {
+    resetInactivityTimer();
+    currentCategory = 'reused';
+    document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+    renderVault();
+});
+
+statCardWeak.addEventListener('click', () => {
+    resetInactivityTimer();
+    currentCategory = 'weak';
+    document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+    renderVault();
+});
+
+statCardCompromised.addEventListener('click', () => {
+    resetInactivityTimer();
+    currentCategory = 'compromised';
+    document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+    renderVault();
 });
 
 // --- Auto-Lock Mechanism ---

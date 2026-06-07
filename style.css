@@ -741,3 +741,14 @@ select:focus {
     background: var(--danger);
 }
 
+.stat-item.clickable-stat {
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+.stat-item.clickable-stat:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.03);
+}
+
