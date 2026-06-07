@@ -73,6 +73,7 @@
                         <li class="category-item" data-category="card">Cards</li>
                         <li class="category-item" data-category="note">Notes</li>
                         <li class="category-item" data-category="server">Servers</li>
+                        <li class="category-item" data-category="audit">Security Audit</li>
                     </ul>
                     
                     <div class="sidebar-footer">
@@ -84,7 +85,7 @@
 
                 <!-- Main Content Area -->
                 <div class="content-area">
-                    <div class="actions-bar">
+                    <div class="actions-bar" id="standard-actions-bar">
                         <div class="actions-left">
                             <button id="show-add-modal-btn" class="btn-primary">+ New Entry</button>
                             <button id="run-audit-btn" class="btn-warning">Run Security Audit</button>
@@ -94,7 +95,7 @@
                         </div>
                     </div>
 
-                    <div class="table-container">
+                    <div class="table-container" id="passwords-table-container">
                         <table id="passwords-table">
                             <thead>
                                 <tr>
@@ -113,19 +114,83 @@
                             <p>Your vault is empty. Click "+ New Entry" to securely store a password.</p>
                         </div>
                     </div>
+
+                    <!-- Audit Dashboard Container -->
+                    <div id="audit-dashboard" class="hidden">
+                        <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h3 style="margin: 0; color: var(--text-primary); font-size: 1.5rem;">Security Dashboard</h3>
+                            <button id="dashboard-run-audit-btn" class="btn-warning btn-sm">Scan HaveIBeenPwned</button>
+                        </div>
+                        
+                        <div class="audit-grid">
+                            <!-- Circular score indicator -->
+                            <div class="score-card">
+                                <div class="score-circle-container">
+                                    <svg viewBox="0 0 36 36" class="circular-chart">
+                                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path id="score-circle-progress" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <div class="score-text">
+                                        <span id="score-number">--</span>
+                                        <span class="score-label">Vault Health</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Key statistics cards -->
+                            <div class="stats-card">
+                                <div class="stat-item">
+                                    <span class="stat-icon" style="color:var(--accent);">⭐</span>
+                                    <div class="stat-details">
+                                        <span class="stat-val" id="stat-total">0</span>
+                                        <span class="stat-lbl">Total Items</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon" style="color:var(--danger);">⚠️</span>
+                                    <div class="stat-details">
+                                        <span class="stat-val" id="stat-reused">0</span>
+                                        <span class="stat-lbl">Reused Passwords</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon" style="color:var(--warning);">⚡</span>
+                                    <div class="stat-details">
+                                        <span class="stat-val" id="stat-weak">0</span>
+                                        <span class="stat-lbl">Weak Passwords</span>
+                                    </div>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon" style="color:#f43f5e;">💥</span>
+                                    <div class="stat-details">
+                                        <span class="stat-val" id="stat-compromised">0</span>
+                                        <span class="stat-lbl">Compromised</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alerts-section" style="margin-top: 2rem;">
+                            <h4 style="color: var(--text-primary); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Security Alerts & Recommendations</h4>
+                            <div id="alerts-list" class="alerts-list">
+                                <!-- Dynamically loaded alerts -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- Add Entry Modal -->
+    <!-- Add/Edit Entry Modal -->
     <div id="add-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Add New Entry</h3>
+                <h3 id="modal-title">Add New Entry</h3>
                 <button id="close-modal-btn" class="close-btn">&times;</button>
             </div>
             <form id="add-entry-form">
+                <input type="hidden" id="entry-index" value="">
                 <div class="form-group">
                     <label>Category</label>
                     <select id="entry-category" required>
@@ -145,6 +210,12 @@
                 <div class="form-group" id="group-username">
                     <label id="label-username">Username / Email</label>
                     <input type="text" id="entry-username" required>
+                </div>
+
+                <!-- TOTP Secret field (only visible for login / server) -->
+                <div class="form-group" id="group-totp">
+                    <label>TOTP Secret (optional)</label>
+                    <input type="text" id="entry-totp" placeholder="e.g. JBSWY3DPEHPK3PXP (Base32)">
                 </div>
                 
                 <!-- Card fields -->
@@ -188,7 +259,15 @@
                         <button type="button" id="apply-gen-btn" class="btn-secondary full-width btn-sm">Generate & Apply</button>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary full-width" style="margin-top: 1rem;">Save Entry</button>
+                <button type="submit" id="save-entry-btn" class="btn-primary full-width" style="margin-top: 1rem;">Save Entry</button>
+
+                <!-- Password History section (only visible when editing) -->
+                <div id="history-container" class="form-group hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                    <label style="color: var(--text-secondary); margin-bottom: 0.75rem; display: block;">Password History</label>
+                    <div id="history-list" style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 0.5rem;">
+                        <!-- History items injected by JS -->
+                    </div>
+                </div>
             </form>
         </div>
     </div>

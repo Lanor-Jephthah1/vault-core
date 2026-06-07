@@ -111,6 +111,73 @@ const CryptoUtils = {
             bytes[i] = binary_string.charCodeAt(i);
         }
         return bytes.buffer;
+    },
+
+    // Helper: Base32 to Uint8Array
+    base32ToBytes(str) {
+        str = str.replace(/=+$/, '').replace(/\s+/g, '').toUpperCase();
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        let bits = 0;
+        let value = 0;
+        let index = 0;
+        const output = new Uint8Array(((str.length * 5) / 8) | 0);
+        
+        for (let i = 0; i < str.length; i++) {
+            const val = alphabet.indexOf(str.charAt(i));
+            if (val === -1) throw new Error("Invalid base32 character: " + str.charAt(i));
+            value = (value << 5) | val;
+            bits += 5;
+            if (bits >= 8) {
+                output[index++] = (value >>> (bits - 8)) & 255;
+                bits -= 8;
+            }
+        }
+        return output;
+    },
+
+    // Generate TOTP code (6-digit, 30s interval)
+    async generateTOTP(secret, interval = 30, digits = 6) {
+        try {
+            const keyBytes = this.base32ToBytes(secret);
+            const epoch = Math.floor(Date.now() / 1000);
+            const counter = Math.floor(epoch / interval);
+            
+            // Counter needs to be 8-byte big-endian buffer
+            const counterBuffer = new ArrayBuffer(8);
+            const view = new DataView(counterBuffer);
+            view.setUint32(0, 0); // High 32 bits
+            view.setUint32(4, counter); // Low 32 bits
+            
+            const key = await crypto.subtle.importKey(
+                "raw",
+                keyBytes,
+                { name: "HMAC", hash: { name: "SHA-1" } },
+                false,
+                ["sign"]
+            );
+            
+            const signature = await crypto.subtle.sign(
+                "HMAC",
+                key,
+                counterBuffer
+            );
+            
+            const hmacBytes = new Uint8Array(signature);
+            const offset = hmacBytes[hmacBytes.length - 1] & 0xf;
+            
+            const binary = ((hmacBytes[offset] & 0x7f) << 24) |
+                           ((hmacBytes[offset + 1] & 0xff) << 16) |
+                           ((hmacBytes[offset + 2] & 0xff) << 8) |
+                           (hmacBytes[offset + 3] & 0xff);
+                           
+            const otp = binary % Math.pow(10, digits);
+            const result = otp.toString().padStart(digits, '0');
+            
+            const secondsRemaining = interval - (epoch % interval);
+            return { code: result, secondsRemaining };
+        } catch (e) {
+            return { code: "------", secondsRemaining: 0, error: true };
+        }
     }
 };
 

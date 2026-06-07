@@ -72,6 +72,27 @@ const importFileInput = document.getElementById('import-file-input');
 // Search
 const searchBar = document.getElementById('search-bar');
 
+// New DOM Elements for Edit, TOTP and Audit Dashboard
+const entryIndexInput = document.getElementById('entry-index');
+const modalTitle = document.getElementById('modal-title');
+const groupTotp = document.getElementById('group-totp');
+const entryTotp = document.getElementById('entry-totp');
+const historyContainer = document.getElementById('history-container');
+const historyList = document.getElementById('history-list');
+
+const standardActionsBar = document.getElementById('standard-actions-bar');
+const passwordsTableContainer = document.getElementById('passwords-table-container');
+const auditDashboard = document.getElementById('audit-dashboard');
+const dashboardRunAuditBtn = document.getElementById('dashboard-run-audit-btn');
+
+const scoreCircleProgress = document.getElementById('score-circle-progress');
+const scoreNumber = document.getElementById('score-number');
+const statTotal = document.getElementById('stat-total');
+const statReused = document.getElementById('stat-reused');
+const statWeak = document.getElementById('stat-weak');
+const statCompromised = document.getElementById('stat-compromised');
+const alertsList = document.getElementById('alerts-list');
+
 // --- Initialization ---
 async function fetchVault() {
     try {
@@ -109,6 +130,7 @@ entryCategorySelect.addEventListener('change', () => {
     
     groupUsername.classList.remove('hidden');
     groupPassword.classList.remove('hidden');
+    groupTotp.classList.remove('hidden');
     groupCardHolder.classList.add('hidden');
     groupCardExpiry.classList.add('hidden');
     groupNoteContent.classList.add('hidden');
@@ -136,11 +158,13 @@ entryCategorySelect.addEventListener('change', () => {
         
         groupCardHolder.classList.remove('hidden');
         groupCardExpiry.classList.remove('hidden');
+        groupTotp.classList.add('hidden');
     } else if (cat === 'note') {
         labelName.textContent = "Note Title";
         entryName.placeholder = "e.g. WiFi Password or Recovery Keys";
         groupUsername.classList.add('hidden');
         groupPassword.classList.add('hidden');
+        groupTotp.classList.add('hidden');
         groupNoteContent.classList.remove('hidden');
     } else if (cat === 'server') {
         labelName.textContent = "Server Name";
@@ -324,8 +348,63 @@ function showVault() {
 }
 
 // --- Rendering Vault ---
+let totpIntervalId = null;
+
+function startTotpUpdater() {
+    if (totpIntervalId) clearInterval(totpIntervalId);
+    
+    async function updateAllTotpCodes() {
+        const containers = document.querySelectorAll('.totp-container');
+        for (let container of containers) {
+            const secret = container.getAttribute('data-totp-secret');
+            const codeEl = container.querySelector('.totp-code');
+            const barEl = container.querySelector('.totp-timer-bar');
+            
+            if (!secret) continue;
+            
+            const totpObj = await CryptoUtils.generateTOTP(secret);
+            codeEl.textContent = totpObj.code.slice(0, 3) + ' ' + totpObj.code.slice(3);
+            
+            const remaining = totpObj.secondsRemaining;
+            
+            // Adjust progress bar visual representation
+            barEl.className = 'totp-timer-bar';
+            if (remaining <= 5) {
+                barEl.classList.add('danger');
+            } else if (remaining <= 10) {
+                barEl.classList.add('warning');
+            }
+        }
+    }
+    
+    updateAllTotpCodes();
+    totpIntervalId = setInterval(updateAllTotpCodes, 1000);
+}
+
+function getTotpHtml(entry, index) {
+    return `
+        <div class="totp-container" style="margin-top: 0.5rem;" data-totp-index="${index}" data-totp-secret="${escapeHtml(entry.totpSecret)}">
+            <span class="totp-code">------</span>
+            <div class="totp-timer-bar"></div>
+            <button type="button" class="copy-btn copy-totp-btn" style="padding: 2px 4px; font-size: 0.75rem;" title="Copy TOTP Code">Copy</button>
+        </div>
+    `;
+}
+
 function renderVault() {
     passwordsBody.innerHTML = '';
+    
+    if (currentCategory === 'audit') {
+        standardActionsBar.classList.add('hidden');
+        passwordsTableContainer.classList.add('hidden');
+        auditDashboard.classList.remove('hidden');
+        renderAuditDashboard();
+        return;
+    } else {
+        standardActionsBar.classList.remove('hidden');
+        passwordsTableContainer.classList.remove('hidden');
+        auditDashboard.classList.add('hidden');
+    }
     
     // Map entries to their original index for correct mutations (copy/delete)
     let filteredEntries = vaultData.map((entry, originalIndex) => ({ ...entry, originalIndex }));
@@ -371,11 +450,16 @@ function renderVault() {
         `;
         
         let usernameHtml = escapeHtml(entry.username || '');
+        if (entry.totpSecret) {
+            usernameHtml += getTotpHtml(entry, entry.originalIndex);
+        }
+        
         let pwdHtml = '••••••••';
         let actionsHtml = `
             <button class="copy-btn" data-index="${entry.originalIndex}" data-type="name">Copy URL</button>
             <button class="copy-btn" data-index="${entry.originalIndex}" data-type="username">Copy Username</button>
             <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Password</button>
+            <button class="copy-btn edit-btn" data-index="${entry.originalIndex}">Edit</button>
             <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
         `;
         
@@ -385,6 +469,7 @@ function renderVault() {
             actionsHtml = `
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="username">Copy Card No.</button>
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy CVV/PIN</button>
+                <button class="copy-btn edit-btn" data-index="${entry.originalIndex}">Edit</button>
                 <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
             `;
         } else if (cat === 'note') {
@@ -393,13 +478,19 @@ function renderVault() {
             statusHtml = '<span class="status-badge status-safe">Secure Note</span>';
             actionsHtml = `
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Note</button>
+                <button class="copy-btn edit-btn" data-index="${entry.originalIndex}">Edit</button>
                 <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
             `;
         } else if (cat === 'server') {
+            usernameHtml = escapeHtml(entry.username || '');
+            if (entry.totpSecret) {
+                usernameHtml += getTotpHtml(entry, entry.originalIndex);
+            }
             actionsHtml = `
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="name">Copy Server</button>
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="username">Copy IP</button>
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Password</button>
+                <button class="copy-btn edit-btn" data-index="${entry.originalIndex}">Edit</button>
                 <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
             `;
         }
@@ -415,7 +506,7 @@ function renderVault() {
     });
 
     // Attach listeners
-    document.querySelectorAll('.copy-btn:not(.delete-btn)').forEach(btn => {
+    document.querySelectorAll('.copy-btn:not(.delete-btn):not(.edit-btn):not(.copy-totp-btn)').forEach(btn => {
         btn.addEventListener('click', (e) => {
             resetInactivityTimer();
             const idx = e.target.getAttribute('data-index');
@@ -440,6 +531,29 @@ function renderVault() {
         });
     });
 
+    document.querySelectorAll('.copy-totp-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            resetInactivityTimer();
+            const container = e.target.closest('.totp-container');
+            const secret = container.getAttribute('data-totp-secret');
+            const totpObj = await CryptoUtils.generateTOTP(secret);
+            
+            navigator.clipboard.writeText(totpObj.code);
+            const originalText = e.target.textContent;
+            e.target.textContent = "Copied!";
+            setTimeout(() => e.target.textContent = originalText, 2000);
+        });
+    });
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            resetInactivityTimer();
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            openEditModal(idx);
+        });
+    });
+
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             resetInactivityTimer();
@@ -449,6 +563,215 @@ function renderVault() {
                 await saveVault();
                 renderVault();
             }
+        });
+    });
+
+    startTotpUpdater();
+}
+
+// --- Edit Modal & History Controllers ---
+function openEditModal(index) {
+    const entry = vaultData[index];
+    
+    // Set category and update fields
+    entryCategorySelect.value = entry.category || 'login';
+    entryCategorySelect.dispatchEvent(new Event('change'));
+    
+    // Populate inputs
+    entryName.value = entry.name || '';
+    entryUsername.value = entry.username || '';
+    entryPassword.value = entry.password || '';
+    entryTotp.value = entry.totpSecret || '';
+    entryIndexInput.value = index;
+    
+    if (entry.category === 'card') {
+        document.getElementById('entry-card-holder').value = entry.cardholder || '';
+        document.getElementById('entry-card-expiry').value = entry.expiry || '';
+    } else if (entry.category === 'note') {
+        document.getElementById('entry-note-content').value = entry.password || '';
+    }
+    
+    // Load history
+    historyContainer.classList.remove('hidden');
+    renderPasswordHistory(entry);
+    
+    // Set Title
+    modalTitle.textContent = "Edit Entry";
+    addModal.classList.remove('hidden');
+}
+
+function renderPasswordHistory(entry) {
+    historyList.innerHTML = '';
+    const history = entry.history || [];
+    
+    if (history.length === 0) {
+        historyList.innerHTML = '<span style="color:var(--text-secondary); font-size:0.8rem;">No previous passwords saved.</span>';
+        return;
+    }
+    
+    [...history].reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        
+        const dateStr = new Date(item.timestamp).toLocaleString();
+        
+        div.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:2px; overflow:hidden;">
+                <span class="history-pwd" title="${escapeHtml(item.password)}">${escapeHtml(item.password)}</span>
+                <span class="history-date">${dateStr}</span>
+            </div>
+            <button type="button" class="copy-btn copy-history-pwd-btn" data-password="${escapeHtml(item.password)}" style="padding: 2px 4px; font-size: 0.75rem;">Copy</button>
+        `;
+        historyList.appendChild(div);
+    });
+    
+    document.querySelectorAll('.copy-history-pwd-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const pwd = e.target.getAttribute('data-password');
+            navigator.clipboard.writeText(pwd);
+            const originalText = e.target.textContent;
+            e.target.textContent = "Copied!";
+            setTimeout(() => e.target.textContent = originalText, 2000);
+        });
+    });
+}
+
+// --- Security Dashboard Rendering & Scoring ---
+function isPasswordWeak(pwd) {
+    if (!pwd) return true;
+    if (pwd.length < 12) return true;
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasLower = /[a-z]/.test(pwd);
+    const hasDigit = /[0-9]/.test(pwd);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+    return !(hasUpper && hasLower && hasDigit && hasSpecial);
+}
+
+function getReusedPasswordsInfo() {
+    const passwordCounts = {};
+    vaultData.forEach(entry => {
+        if (entry.category === 'note' || !entry.password) return;
+        passwordCounts[entry.password] = (passwordCounts[entry.password] || 0) + 1;
+    });
+    return passwordCounts;
+}
+
+function calculateSecurityScore() {
+    const activeEntries = vaultData.filter(e => e.category !== 'note');
+    if (activeEntries.length === 0) return 100;
+    
+    let score = 100;
+    const passwordCounts = getReusedPasswordsInfo();
+    
+    activeEntries.forEach(entry => {
+        if (isPasswordWeak(entry.password)) {
+            score -= 10;
+        }
+        if (passwordCounts[entry.password] > 1) {
+            score -= 10;
+        }
+        if (entry.pwned === true) {
+            score -= 15;
+        }
+    });
+    
+    return Math.max(0, Math.min(100, score));
+}
+
+function renderAuditDashboard() {
+    const activeEntries = vaultData.filter(e => e.category !== 'note');
+    
+    let weakCount = 0;
+    let reusedCount = 0;
+    let compromisedCount = 0;
+    const passwordCounts = getReusedPasswordsInfo();
+    const alerts = [];
+    
+    activeEntries.forEach((entry, originalIndex) => {
+        const isWeak = isPasswordWeak(entry.password);
+        const isReused = passwordCounts[entry.password] > 1;
+        const isCompromised = entry.pwned === true;
+        
+        if (isWeak) weakCount++;
+        if (isReused) reusedCount++;
+        if (isCompromised) compromisedCount++;
+        
+        if (isCompromised) {
+            alerts.push({
+                type: 'danger',
+                title: `Compromised Password for ${escapeHtml(entry.name)}`,
+                desc: `This password was found in a HaveIBeenPwned breach. Change it immediately to secure your account.`,
+                index: originalIndex
+            });
+        }
+        
+        if (isReused) {
+            alerts.push({
+                type: 'warning',
+                title: `Reused Password for ${escapeHtml(entry.name)}`,
+                desc: `You are using this password for multiple accounts. Reusing passwords increases breach impact.`,
+                index: originalIndex
+            });
+        }
+        
+        if (isWeak) {
+            alerts.push({
+                type: 'warning',
+                title: `Weak Password for ${escapeHtml(entry.name)}`,
+                desc: `This password is under 12 characters or lacks complexity (needs uppercase, lowercase, numbers, symbols).`,
+                index: originalIndex
+            });
+        }
+    });
+    
+    statTotal.textContent = vaultData.length;
+    statReused.textContent = reusedCount;
+    statWeak.textContent = weakCount;
+    statCompromised.textContent = compromisedCount;
+    
+    const score = calculateSecurityScore();
+    scoreNumber.textContent = score;
+    scoreCircleProgress.style.strokeDasharray = `${score}, 100`;
+    
+    if (score >= 80) {
+        scoreCircleProgress.style.stroke = "#10b981";
+    } else if (score >= 50) {
+        scoreCircleProgress.style.stroke = "#f59e0b";
+    } else {
+        scoreCircleProgress.style.stroke = "#ef4444";
+    }
+    
+    alertsList.innerHTML = '';
+    if (alerts.length === 0) {
+        alertsList.innerHTML = `
+            <div class="alert-card info">
+                <div class="alert-content">
+                    <span class="alert-title">🎉 Your Vault is Healthy!</span>
+                    <span class="alert-desc">All passwords are strong, unique, and secure. Good job!</span>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    alerts.forEach(alert => {
+        const div = document.createElement('div');
+        div.className = `alert-card ${alert.type === 'danger' ? 'danger' : ''}`;
+        
+        div.innerHTML = `
+            <div class="alert-content">
+                <span class="alert-title">${alert.title}</span>
+                <span class="alert-desc">${alert.desc}</span>
+            </div>
+            <button type="button" class="btn-primary btn-sm fix-alert-btn" data-index="${alert.index}" style="width: auto; padding: 0.4rem 1rem;">Fix</button>
+        `;
+        alertsList.appendChild(div);
+    });
+    
+    document.querySelectorAll('.fix-alert-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            openEditModal(idx);
         });
     });
 }
@@ -465,6 +788,11 @@ closeModalBtn.addEventListener('click', () => {
     generatorOptions.classList.add('hidden');
     addEntryForm.reset();
     
+    entryIndexInput.value = "";
+    modalTitle.textContent = "Add New Entry";
+    historyContainer.classList.add('hidden');
+    historyList.innerHTML = '';
+    
     // Trigger category reset
     entryCategorySelect.value = 'login';
     entryCategorySelect.dispatchEvent(new Event('change'));
@@ -476,27 +804,53 @@ addEntryForm.addEventListener('submit', async (e) => {
     
     const cat = entryCategorySelect.value;
     const name = entryName.value;
+    const editIndexStr = entryIndexInput.value;
     
     let username = "";
     let password = "";
     let cardholder = "";
     let expiry = "";
+    let totpSecret = "";
     
     if (cat === 'login' || cat === 'server') {
         username = entryUsername.value;
         password = entryPassword.value;
+        totpSecret = entryTotp.value.trim();
     } else if (cat === 'card') {
-        username = entryUsername.value; // Card Number
-        password = entryPassword.value; // CVV / PIN
+        username = entryUsername.value;
+        password = entryPassword.value;
         cardholder = document.getElementById('entry-card-holder').value;
         expiry = document.getElementById('entry-card-expiry').value;
     } else if (cat === 'note') {
-        password = document.getElementById('entry-note-content').value; // Store Note in password
+        password = document.getElementById('entry-note-content').value;
     }
     
-    vaultData.push({
-        name, username, category: cat, password, cardholder, expiry, pwned: null
-    });
+    if (editIndexStr !== "") {
+        const idx = parseInt(editIndexStr);
+        const entry = vaultData[idx];
+        
+        if (entry.password !== password) {
+            entry.history = entry.history || [];
+            entry.history.push({
+                password: entry.password,
+                timestamp: Date.now()
+            });
+            entry.pwned = null; // Re-evaluate breach status on password change
+        }
+        
+        entry.name = name;
+        entry.username = username;
+        entry.category = cat;
+        entry.password = password;
+        entry.cardholder = cardholder;
+        entry.expiry = expiry;
+        entry.totpSecret = totpSecret;
+        entry.lastModified = Date.now();
+    } else {
+        vaultData.push({
+            name, username, category: cat, password, cardholder, expiry, totpSecret, pwned: null, history: [], lastModified: Date.now()
+        });
+    }
     
     await saveVault();
     addModal.classList.add('hidden');
@@ -682,15 +1036,11 @@ importFileInput.addEventListener('change', (e) => {
 });
 
 // --- HaveIBeenPwned API Integration ---
-runAuditBtn.addEventListener('click', async () => {
-    resetInactivityTimer();
-    runAuditBtn.textContent = "Auditing...";
-    runAuditBtn.disabled = true;
-    
+async function runSecurityAuditProcess() {
     for (let i = 0; i < vaultData.length; i++) {
         const entry = vaultData[i];
-        if (entry.category === 'note') {
-            entry.pwned = false; // Notes are safe from password breach checks
+        if (entry.category === 'note' || !entry.password) {
+            entry.pwned = false;
             continue;
         }
         try {
@@ -699,6 +1049,7 @@ runAuditBtn.addEventListener('click', async () => {
             const suffix = hash.substring(5);
             
             const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+            if (!response.ok) continue;
             const text = await response.text();
             
             const lines = text.split('\n');
@@ -706,7 +1057,7 @@ runAuditBtn.addEventListener('click', async () => {
             
             for (let line of lines) {
                 const parts = line.split(':');
-                if (parts[0] === suffix) {
+                if (parts[0].trim() === suffix.trim()) {
                     isPwned = true;
                     break;
                 }
@@ -717,12 +1068,31 @@ runAuditBtn.addEventListener('click', async () => {
             console.error("Audit error", err);
         }
     }
-    
     await saveVault();
+}
+
+runAuditBtn.addEventListener('click', async () => {
+    resetInactivityTimer();
+    runAuditBtn.textContent = "Auditing...";
+    runAuditBtn.disabled = true;
+    
+    await runSecurityAuditProcess();
     renderVault();
     
     runAuditBtn.textContent = "Run Security Audit";
     runAuditBtn.disabled = false;
+});
+
+dashboardRunAuditBtn.addEventListener('click', async () => {
+    resetInactivityTimer();
+    dashboardRunAuditBtn.textContent = "Auditing...";
+    dashboardRunAuditBtn.disabled = true;
+    
+    await runSecurityAuditProcess();
+    renderVault();
+    
+    dashboardRunAuditBtn.textContent = "Scan HaveIBeenPwned";
+    dashboardRunAuditBtn.disabled = false;
 });
 
 // Basic XSS escape
