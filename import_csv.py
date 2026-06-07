@@ -90,9 +90,23 @@ def main():
                 raw_name = row.get('name', '')
                 raw_url = row.get('url', '')
                 
+                import urllib.parse
+                
                 final_name = raw_name
                 if raw_url and raw_url not in raw_name:
-                    final_name = f"{raw_name} ({raw_url})" if raw_name else raw_url
+                    # Parse the URL to get just the clean domain
+                    parsed_url = urllib.parse.urlparse(raw_url)
+                    clean_domain = parsed_url.netloc or parsed_url.path
+                    
+                    # Remove android:// prefix and weird hashes if present
+                    if raw_url.startswith('android://'):
+                        clean_domain = 'Android App'
+                        # Try to extract a readable app name if possible, otherwise keep 'Android App'
+                        parts = raw_url.split('@')
+                        if len(parts) > 1:
+                            clean_domain = parts[1]
+                    
+                    final_name = f"{raw_name} ({clean_domain})" if raw_name else clean_domain
                 
                 if not final_name and not row.get('username') and not row.get('password'):
                     continue
