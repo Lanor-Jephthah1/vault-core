@@ -221,9 +221,17 @@ td:nth-child(1), td:nth-child(2) {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
     border-radius: 4px;
+    white-space: nowrap;
 }
 .copy-btn:hover {
     background: rgba(16, 185, 129, 0.1);
+}
+
+td:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
 }
 
 .status-badge {
