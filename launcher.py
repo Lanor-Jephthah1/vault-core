@@ -5,8 +5,8 @@ import subprocess
 import time
 
 def launch_vaultcore():
-    # Define paths
-    vaultcore_dir = r"C:\Users\McLanor Jeff\.gemini\antigravity\scratch\vault-core"
+    # Use the directory where launcher.py resides
+    vaultcore_dir = os.path.dirname(os.path.abspath(__file__))
     server_script = "server.py"
     port = 8000
     url = f"http://localhost:{port}"
