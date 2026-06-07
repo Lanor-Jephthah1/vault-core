@@ -373,6 +373,8 @@ function renderVault() {
         let usernameHtml = escapeHtml(entry.username || '');
         let pwdHtml = '••••••••';
         let actionsHtml = `
+            <button class="copy-btn" data-index="${entry.originalIndex}" data-type="name">Copy URL</button>
+            <button class="copy-btn" data-index="${entry.originalIndex}" data-type="username">Copy Username</button>
             <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Password</button>
             <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
         `;
@@ -395,6 +397,7 @@ function renderVault() {
             `;
         } else if (cat === 'server') {
             actionsHtml = `
+                <button class="copy-btn" data-index="${entry.originalIndex}" data-type="name">Copy Server</button>
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="username">Copy IP</button>
                 <button class="copy-btn" data-index="${entry.originalIndex}" data-type="password">Copy Password</button>
                 <button class="copy-btn delete-btn" style="color:var(--danger)" data-index="${entry.originalIndex}">Delete</button>
@@ -418,7 +421,10 @@ function renderVault() {
             const idx = e.target.getAttribute('data-index');
             const type = e.target.getAttribute('data-type');
             
-            const value = type === 'username' ? vaultData[idx].username : vaultData[idx].password;
+            let value = vaultData[idx].password;
+            if (type === 'username') value = vaultData[idx].username;
+            else if (type === 'name') value = vaultData[idx].name;
+            
             navigator.clipboard.writeText(value);
             
             const originalText = e.target.textContent;
